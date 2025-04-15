@@ -1,1 +1,0 @@
-from avnet.iotconnect.sdk.sdklib.protocol.files import ProtocolDeviceConfigJson

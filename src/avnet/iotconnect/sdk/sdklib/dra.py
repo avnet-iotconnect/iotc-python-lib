@@ -8,7 +8,7 @@ import urllib.request
 from typing import Final, Union, Optional
 from urllib.error import HTTPError, URLError
 
-from avnet.iotconnect.sdk.sdklib.config import DeviceConfig
+from avnet.iotconnect.sdk.sdklib.config import DeviceProperties
 from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError
 from avnet.iotconnect.sdk.sdklib.protocol.discovery import IotcDiscoveryResponseJson
 from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, ProtocolIdentityResponseJson
@@ -27,20 +27,19 @@ class DeviceIdentityData:
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
 
-
 class DraDiscoveryUrl:
     method: str = "GET"  # To clarify that get should be used to parse the response
-    API_URL_FORMAT: Final[str] = "%s/api/v2.1/dsdk/cpId/%s/env/%s"
+    API_URL_FORMAT: Final[str] = "https://discovery.iotconnect.io/api/v2.1/dsdk/cpId/%s/env/%s?pf=%s"
+
+    def __init__(self, config: DeviceProperties):
+        self.config = config
 
     def get_api_url(self) -> str:
         return DraDiscoveryUrl.API_URL_FORMAT % (
-            self.config.discovery_url,
             urllib.parse.quote(self.config.cpid, safe=''),
-            urllib.parse.quote(self.config.env, safe='')
+            urllib.parse.quote(self.config.env, safe=''),
+            urllib.parse.quote(self.config.platform, safe='')
         )
-
-    def __init__(self, config: DeviceConfig):
-        self.config = config
 
 
 class DraIdentityUrl:
@@ -51,7 +50,7 @@ class DraIdentityUrl:
 
     method: str = "GET"  # To clarify that get should be used to parse the response
 
-    def get_uid_api_url(self, config: DeviceConfig) -> str:
+    def get_uid_api_url(self, config: DeviceProperties) -> str:
         return DraIdentityUrl.UID_API_URL_FORMAT % (
             self.base_url,
             urllib.parse.quote(config.duid, safe='')
@@ -134,7 +133,7 @@ class DraDeviceInfoParser:
         return DeviceIdentityData(ird.d.p, ird.d.meta)
 
 class DeviceRestApi:
-    def __init__(self, config: DeviceConfig, trace_request: Optional[bool] = False):
+    def __init__(self, config: DeviceProperties, trace_request: Optional[bool] = False):
         self.config = config
         self.trace_request = trace_request
 
