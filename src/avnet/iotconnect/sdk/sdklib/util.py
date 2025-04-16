@@ -11,6 +11,10 @@ from datetime import datetime, timedelta
 from typing import get_type_hints, Type, Union, TypeVar
 
 
+def to_iotconnect_time_str(ts: datetime) -> str:
+    return ts.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
 def dict_filter_empty(input_dict: dict):
     return {k: v for k, v in input_dict.items() if v is not None}
 

@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
-
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Union
 
 # This file contains definitions related to (inbound or outbound) C2D Messages
 
 from avnet.iotconnect.sdk.sdklib.protocol.c2d import ProtocolC2dMessageJson, ProtocolCommandMessageJson, ProtocolOtaUrlJson, ProtocolOtaMessageJson
+from avnet.iotconnect.sdk.sdklib.protocol.d2c import ProtocolTelemetryMessageJson, ProtocolTelemetryEntryJson
+from avnet.iotconnect.sdk.sdklib.util import dataclass_factory_filter_empty, to_iotconnect_time_str
 
 # When type "object" is defined in IoTConnect, it cannot have nested objects inside of it.
 TelemetryValueObjectType = dict[str, Union[None, str, int, float, bool, tuple[float, float]]]
@@ -58,6 +60,26 @@ class C2dAck:
     @classmethod
     def is_valid_ota_status(cls, status: int) -> bool:
         return status in (C2dAck.OTA_FAILED, C2dAck.OTA_DOWNLOADING, C2dAck.OTA_DOWNLOAD_DONE, C2dAck.OTA_DOWNLOAD_FAILED)
+
+
+def format_telemetry_records(records: list[TelemetryRecord],  record_timestamp: datetime = None) -> str:
+
+    packet = ProtocolTelemetryMessageJson()
+    for r in records:
+        packet_entry = ProtocolTelemetryEntryJson(
+            d=r.values,
+            dt=None if r.timestamp is None else to_iotconnect_time_str(r.timestamp),
+            id=r.unique_id,
+            tg=r.tag
+        )
+        packet.d.append(asdict(packet_entry, dict_factory=dataclass_factory_filter_empty))
+    return json.dumps(asdict(packet), separators=(',', ':'))
+
+def format_single_telemetry_record(values: dict[str, TelemetryValueType], timestamp: datetime = None) -> str:
+    return format_telemetry_records([TelemetryRecord(
+        values=values,
+        timestamp=timestamp
+    )])
 
 class C2dMessage:
     COMMAND = 0
