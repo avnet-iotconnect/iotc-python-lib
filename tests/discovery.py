@@ -1,8 +1,18 @@
 import copy
+import sys
 
 from avnet.iotconnect.sdk.sdklib.config import DeviceProperties
 from avnet.iotconnect.sdk.sdklib.dra import DeviceRestApi
 from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError
+
+
+def load_device_properties() -> DeviceProperties:
+    try:
+        from accountcfg import DEVICE_PROPERTIES
+        return DEVICE_PROPERTIES
+    except ImportError:
+        print("accountcfg.py needs to exist in this directory in order to run this test. Please refer to TESTS_CONFIGURATION.md", file=sys.stderr)
+        sys.exit(-1)
 
 def test_configure(device_properties: DeviceProperties):
     dra = DeviceRestApi(device_properties, trace_request=True)
@@ -17,12 +27,7 @@ def test_validation(device_properties: DeviceProperties):
 
 
 try:
-    props = DeviceProperties(
-        duid="nik-gg-pc01",
-        cpid="97FF86E8728645E9B89F7B07977E4B15",
-        env="poc",
-        platform="aws"
-    )
+    props = load_device_properties()
     props.validate()
 
     props_test = copy.copy(props)
@@ -38,9 +43,6 @@ try:
     test_validation(props_test)
 
     test_configure(props)
-
-
-    props.env = "1" # now expect validation for env to fail
 
 
 except DeviceConfigError as ex:
