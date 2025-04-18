@@ -3,10 +3,24 @@ This project is the library that abstracts the /IOTCONNECT protocols for the SDK
 [/IOTCONNECT Python Lite SDK](https://github.com/avnet-iotconnect/iotc-python-lite-sdk)
 and the future Greengrass SDK.
 
-The library provides common code for interacting with /IOTCONNECT services:
-* Format Telemetry messages
-* Provide /IOTCONNECT events for OTA and command processing
-* Obtain Discovery information
+This library should generally not be used in other projects as the SDKs should be able 
+to provide all the functionality that you would need in your python applications.
+
+# Features
+
+The library provides common code for interacting with /IOTCONNECT MQTT and HTTP device connectivity services:
+* Format Telemetry (Reporting) messages
+* Provide events for OTA and Command processing
+* Streamline OTA and Command acknowledgements
+* Obtain Discovery and Identity information
+
+# Using The Library
+
+To use this library in your project, ensure that your pyton project depends on iotconnect-python-lib.
+Use a fixed major version dependency.
+
+The best way to learn how to use this library is to examine the unit test usage examples
+in the [tests](tests) directory.   
 
 # Licensing
 

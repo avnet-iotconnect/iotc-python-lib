@@ -22,7 +22,7 @@ class ProtocolTelemetryEntryJson:
 @dataclass
 class ProtocolTelemetryMessageJson:
     d: list[ProtocolTelemetryEntryJson] = field(default_factory=list[ProtocolTelemetryEntryJson])
-    # there is also a top level timestamp which has dubious meaning, so we don't support it
+    dt: Optional[str] = field(default=None) # optional top level timestamp - time when this record set was recorded
 
 @dataclass
 class ProtocolAckDJson:

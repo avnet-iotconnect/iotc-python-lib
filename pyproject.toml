@@ -37,6 +37,11 @@ classifiers = [
     "Topic :: Communications",
     "Topic :: Internet",
 ]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+
+
 [project.urls]
 Homepage = "https://github.com/avnet-iotconnect/iotc-python-sdk-lib"
 
@@ -46,3 +51,13 @@ where = ["src"]
 [tool.setuptools.dynamic]
 version = {attr = "avnet.iotconnect.sdk.sdklib.__version__"}
 
+[tool.coverage.run]
+source = ["src"]  # Basic source directory
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
