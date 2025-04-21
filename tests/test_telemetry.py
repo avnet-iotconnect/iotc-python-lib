@@ -6,6 +6,7 @@ from dataclasses import dataclass, asdict
 import avnet.iotconnect.sdk.sdklib.mqtt as lib_mqtt
 
 
+# a fictional nested dataclass that we can use to test encoding with
 @pytest.fixture
 def sensor_data():
     @dataclass
@@ -28,7 +29,6 @@ def sensor_data():
 
 
 def test_dict_encoding():
-    """Test dictionary encoding"""
     packet = lib_mqtt.encode_single_telemetry_record({
         'number': 123,
         'string': "mystring",
@@ -45,7 +45,6 @@ def test_dict_encoding():
 
 
 def test_timestamp_encoding():
-    """Test timestamp encoding"""
     packet = lib_mqtt.encode_single_telemetry_record(
         values={'number': 123},
         timestamp=datetime.datetime.fromtimestamp(1744830740.478986, datetime.timezone.utc)
@@ -55,7 +54,6 @@ def test_timestamp_encoding():
 
 
 def test_dataclass_encoding(sensor_data):
-    """Test dataclass encoding"""
     packet = lib_mqtt.encode_single_telemetry_record(asdict(sensor_data))
     data = json.loads(packet)
     assert data["d"][0]["d"]["temperature"] == 22.8
@@ -63,7 +61,6 @@ def test_dataclass_encoding(sensor_data):
 
 
 def test_multiple_records(sensor_data):
-    """Test multiple record encoding"""
     records = []
     timestamp = datetime.datetime.fromtimestamp(1744830740.478986, datetime.timezone.utc)
 

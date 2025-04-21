@@ -15,7 +15,7 @@
 /README.*.md
 
 # This will be generated when making an editable installs
-src/iotconnect_sdk_lib.egg-info/
+src/iotconnect_lib.egg-info/
 
 # Test coverage reports:
 /htmlcov

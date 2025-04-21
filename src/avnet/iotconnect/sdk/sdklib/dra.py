@@ -133,18 +133,18 @@ class DraDeviceInfoParser:
         return DeviceIdentityData(ird.d.p, ird.d.meta)
 
 class DeviceRestApi:
-    def __init__(self, config: DeviceProperties, trace_request: Optional[bool] = False):
+    def __init__(self, config: DeviceProperties, verbose: Optional[bool] = False):
         self.config = config
-        self.trace_request = trace_request
+        self.verbose = verbose
 
     def get_identity_data(self) -> DeviceIdentityData:
         try:
-            if self.trace_request:
+            if self.verbose:
                 print("Requesting Discovery Data %s..." % DraDiscoveryUrl(self.config).get_api_url())
             resp = urllib.request.urlopen(urllib.request.Request(DraDiscoveryUrl(self.config).get_api_url()))
             discovery_base_url = DraDeviceInfoParser.parse_discovery_response(resp.read())
 
-            if self.trace_request:
+            if self.verbose:
                 print("Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             resp = urllib.request.urlopen(DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             identity_response = DraDeviceInfoParser.parse_identity_response(resp.read())

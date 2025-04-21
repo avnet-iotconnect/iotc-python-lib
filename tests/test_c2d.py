@@ -1,13 +1,13 @@
 import json
+
 import pytest
-from copy import deepcopy
 
 from avnet.iotconnect.sdk.sdklib.error import C2DDecodeError
-from avnet.iotconnect.sdk.sdklib.mqtt import C2dMessage, decode_c2d_message, encode_c2d_ack, C2dAck
+from avnet.iotconnect.sdk.sdklib.mqtt import decode_c2d_message, encode_c2d_ack, C2dAck
 
 
 @pytest.fixture
-def basic_command_payload():
+def command_payload():
     return '{"v":"2.1","ct":0,"cmd":"test enabled","ack":"ABCDEFG"}'
 
 
@@ -16,9 +16,8 @@ def ota_payload():
     return '{"v":"2.1","ct":1,"cmd":"ota","ack":"ABCDEFG","sw":"1.5","hw":"1","urls":[{"url":"https://URL1","fileName":"file1.bin"}, {"url":"https://URL2","fileName":"file2.bin"}]}'
 
 
-def test_command_basic(basic_command_payload):
-    """Test basic command message decoding"""
-    result = decode_c2d_message(basic_command_payload)
+def test_command_basic(command_payload):
+    result = decode_c2d_message(command_payload)
     cmd = result.command
 
     assert cmd.command_name == "test"
@@ -26,35 +25,32 @@ def test_command_basic(basic_command_payload):
     assert cmd.ack_id == "ABCDEFG"
 
 
-def test_command_no_args(basic_command_payload):
-    """Test command with no arguments"""
-    payload = json.loads(basic_command_payload)
+def test_command_no_args(command_payload):
+    payload = json.loads(command_payload)
     payload["cmd"] = 'no-arguments'
     result = decode_c2d_message(json.dumps(payload))
     assert len(result.command.command_args) == 0
 
 
-def test_command_missing_fields(basic_command_payload):
-    """Test command message validation"""
+def test_command_missing_fields(command_payload):
     # Start with fresh payload for each test
-    payload = json.loads(basic_command_payload)
+    payload = json.loads(command_payload)
     del payload['cmd']
     with pytest.raises(C2DDecodeError):
         decode_c2d_message(json.dumps(payload))
 
-    payload = json.loads(basic_command_payload)
+    payload = json.loads(command_payload)
     payload['cmd'] = None
     with pytest.raises(C2DDecodeError):
         decode_c2d_message(json.dumps(payload))
 
-    payload = json.loads(basic_command_payload)
+    payload = json.loads(command_payload)
     payload['cmd'] = ""
     with pytest.raises(C2DDecodeError):
         decode_c2d_message(json.dumps(payload))
 
 
 def test_ota_basic(ota_payload):
-    """Test basic OTA message decoding"""
     result = decode_c2d_message(ota_payload)
     ota = result.ota
 
@@ -64,7 +60,6 @@ def test_ota_basic(ota_payload):
 
 
 def test_ota_failures(ota_payload):
-    """Test OTA message validation failures"""
     # Each test starts with fresh payload
     payload = json.loads(ota_payload)
     del payload["urls"]
@@ -83,10 +78,8 @@ def test_ota_failures(ota_payload):
 
 
 def test_ack_encoding(ota_payload):
-    """Test C2D acknowledgement encoding"""
     ota = decode_c2d_message(ota_payload).ota
 
-    # Test OTA ack
     packet = encode_c2d_ack(
         message_type=ota.type,
         ack_id=ota.ack_id,
