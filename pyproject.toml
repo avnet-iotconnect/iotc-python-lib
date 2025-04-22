@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iotconnect-lib"
+dynamic = ["version"]
+description = "Avnet IoTConnect SDK Library"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Nik Markovic", email = "nikola.markovic@avnet.com" },
+]
+
+keywords = [
+    "IoTconnect",
+    "AWS",
+    "IoTCore",
+    "Azure",
+    "IoTHub",
+    "Greengrass"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications",
+    "Topic :: Internet",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov"]
+
+
+[project.urls]
+Homepage = "https://github.com/avnet-iotconnect/iotc-python-lib"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "avnet.iotconnect.sdk.sdklib.__version__"}
+
+[tool.coverage.run]
+source = ["src"]  # Basic source directory
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

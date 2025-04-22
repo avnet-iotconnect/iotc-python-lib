@@ -1,0 +1,26 @@
+# Development IDEs
+/.idea/
+/.vscode/
+
+# Python Virtual Environment while devloping etc.
+/.venv/
+
+# Build generated files
+/build
+/dist
+/*.gz
+/*.whl
+
+# when massaging for a release with absolute links
+/README.*.md
+
+# This will be generated when making an editable installs
+src/iotconnect_lib.egg-info/
+
+# Test coverage reports:
+/htmlcov
+.coverage
+/coverage.xml
+
+
+
