@@ -12,7 +12,7 @@ this_dir=$(dirname "$0")
 pushd "${this_dir}/.." >/dev/null
 
 REPO_URL="https://github.com/avnet-iotconnect/iotc-python-lib"
-VERSION_FILE="src/avnet/iotconnect/sdk/lite/__init__.py"
+VERSION_FILE="src/avnet/iotconnect/sdk/sdklib/__init__.py"
 README_PATH="README.md"
 README_PATH_WORK="README.work.md"
 README_PATH_BKP="README.bak.md"

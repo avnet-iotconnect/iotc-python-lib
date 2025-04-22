@@ -21,7 +21,14 @@ Use a fixed major version dependency (E.g. "iotconnect-lib<2.0.0".) to
 avoid potential major version breaking your application calls.
 
 The best way to learn how to use this library is to examine the unit test usage examples
-in the [tests](tests) directory.   
+in the [tests](tests) directory or use the SDK implementations listed above in this document
+for reference. 
+
+# Testing
+
+Regression tests should be run with every release using pytest.   
+
+See [tests/TESTS_CONFIGURATION.md](tests/TESTS_CONFIGURATION.md) for more details.
 
 # Licensing
 
