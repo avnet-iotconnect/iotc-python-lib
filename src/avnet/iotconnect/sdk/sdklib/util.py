@@ -12,8 +12,8 @@ from typing import get_type_hints, Type, Union, TypeVar
 
 
 def to_iotconnect_time_str(ts: datetime) -> str:
-    ns_str = str(int(ts.microsecond / 1000))
-    return ts.strftime(f"%Y-%m-%dT%H:%M:%S.{ns_str}Z")
+    ms_str = f"{ts.microsecond // 1000:03d}"
+    return ts.strftime(f"%Y-%m-%dT%H:%M:%S.{ms_str}Z")
 
 
 def dict_filter_empty(input_dict: dict):
