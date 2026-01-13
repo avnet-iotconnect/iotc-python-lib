@@ -66,7 +66,6 @@ class C2dAck:
     def is_valid_ota_status(cls, status: int) -> bool:
         return status in (C2dAck.OTA_FAILED, C2dAck.OTA_DOWNLOADING, C2dAck.OTA_DOWNLOAD_DONE, C2dAck.OTA_DOWNLOAD_FAILED)
 
-
 class C2dMessage:
     COMMAND = 0
     OTA = 1
@@ -82,6 +81,8 @@ class C2dMessage:
     STOP_OPERATION = 109
     START_HEARTBEAT = 100
     STOP_HEARTBEAT = 111
+    START_STREAM = 112
+    STOP_STREAM = 113
     UNKNOWN = 9999
 
     TYPES: dict[int, str, str] = {
@@ -98,6 +99,8 @@ class C2dMessage:
         STOP_OPERATION: "Stop Operation",
         START_HEARTBEAT: "Start Heartbeat",
         STOP_HEARTBEAT: "Stop Heartbeat",
+        START_STREAM: "Start Video Stream",
+        STOP_STREAM: "Stop Video Stream",
         UNKNOWN: "<Unknown Command Received>"
     }
 
@@ -168,6 +171,16 @@ class C2dOta:
         return True
 
 
+class C2dStartStream:
+    def __init__(self, packet: ProtocolC2dMessageJson):
+        self.type = C2dMessage.START_STREAM
+
+
+class C2dStopStream:
+    def __init__(self, packet: ProtocolC2dMessageJson):
+        self.type = C2dMessage.STOP_STREAM
+
+
 class C2DDecodeResult:
     """ see decode_c2d_message() for more details """
     def __init__(
@@ -181,7 +194,8 @@ class C2DDecodeResult:
         # These will be set later once the generic message is processed:
         self.command: Optional[C2dCommand] = None
         self.ota: Optional[C2dOta] = None
-
+        self.start_stream: Optional[C2dStartStream] = None
+        self.stop_stream: Optional[C2dStopStream] = None
 
 
 def encode_telemetry_records(records: list[TelemetryRecord], recordset_timestamp: datetime = None) -> str:
@@ -285,7 +299,7 @@ def decode_c2d_message(payload: str) -> C2DDecodeResult:
     Deserializes a C2D message that arrived to the "CMD" topic.
 
     The result will contain the "generic" message with properties that any message can have
-    and either the "command" or the "OTA" specific message that will be parsed and checked for errror.
+    and either the "command" or the "OTA" specific message that will be parsed and checked for error.
     """
     try:
         # use the simplest form of ProtocolC2dMessageJson when deserializing first and
@@ -311,7 +325,12 @@ def decode_c2d_message(payload: str) -> C2DDecodeResult:
             if len(ota.urls) == 0:
                 raise C2DDecodeError("C2D OTA message has no URLs: %s" % payload)
             ret.ota = ota
+        elif message.type == C2dMessage.START_STREAM:
+            ret.start_stream = C2dStartStream(message_packet)
+        elif message.type == C2dMessage.STOP_STREAM:
+            ret.stop_stream = C2dStopStream(message_packet)
 
         return ret
     except JSONDecodeError as ex:
         raise C2DDecodeError(ex.msg)
+
