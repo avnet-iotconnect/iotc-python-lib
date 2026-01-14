@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
 import json
 import urllib.parse
@@ -11,8 +11,21 @@ from urllib.error import HTTPError, URLError
 from avnet.iotconnect.sdk.sdklib.config import DeviceProperties
 from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError
 from avnet.iotconnect.sdk.sdklib.protocol.discovery import IotcDiscoveryResponseJson
-from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, ProtocolIdentityResponseJson
+from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, \
+    ProtocolIdentityResponseJson
 from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
+
+
+class KvsConfig:
+    def __init__(self, vs_data):
+        if vs_data is not None:
+            self.enabled = True
+            self.credential_endpoint = vs_data.url
+            self.auto_start = vs_data.as_ if vs_data.as_ is not None else False
+        else:
+            self.enabled = False
+            self.credential_endpoint = None
+            self.auto_start = False
 
 
 class DeviceIdentityData:
@@ -26,6 +39,9 @@ class DeviceIdentityData:
         self.is_edge_device = metadata.edge
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
+
+        self.kvs = KvsConfig(mqtt.vs)
+
 
 class DraDiscoveryUrl:
     method: str = "GET"  # To clarify that get should be used to parse the response
@@ -68,7 +84,7 @@ class DraDeviceInfoParser:
         "Device is not active.",
         "Un-Associated. Device has not any template associated with it.",
         "Device is not acquired. Device is created but it is in release state.",
-        "Device is disabled. It’s disabled from broker by Platform Admin",
+        "Device is disabled. It's disabled from broker by Platform Admin",
         "Company not found as SID is not valid",
         "Subscription is expired.",
         "Connection Not Allowed.",
@@ -132,6 +148,7 @@ class DraDeviceInfoParser:
 
         return DeviceIdentityData(ird.d.p, ird.d.meta)
 
+
 class DeviceRestApi:
     def __init__(self, config: DeviceProperties, verbose: Optional[bool] = False):
         self.config = config
@@ -145,7 +162,8 @@ class DeviceRestApi:
             discovery_base_url = DraDeviceInfoParser.parse_discovery_response(resp.read())
 
             if self.verbose:
-                print("Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
+                print(
+                    "Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             resp = urllib.request.urlopen(DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             identity_response = DraDeviceInfoParser.parse_identity_response(resp.read())
             return identity_response

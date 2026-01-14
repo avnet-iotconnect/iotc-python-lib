@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
 # The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
 # For more information about ChatGPT, visit https://openai.com/
@@ -53,6 +53,16 @@ class ProtocolTopicsJson:
 
 
 @dataclass
+class ProtocolVideoStreamingJson:
+    url: Optional[str] = None  # AWS IoT credentials endpoint
+    as_: Optional[bool] = field(default=None, metadata={'alias': 'as'})  # Auto-start flag
+
+    def __post_init__(self):
+        if hasattr(self, 'as'):
+            self.as_ = getattr(self, 'as')
+
+
+@dataclass
 class ProtocolIdentityPJson:
     n: Optional[str] = None
     h: Optional[str] = None
@@ -60,6 +70,7 @@ class ProtocolIdentityPJson:
     id: Optional[str] = None
     un: Optional[str] = None
     topics: ProtocolTopicsJson = field(default_factory=ProtocolTopicsJson)
+    vs: Optional[ProtocolVideoStreamingJson] = None
 
 
 @dataclass
