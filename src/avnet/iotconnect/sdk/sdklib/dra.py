@@ -17,8 +17,6 @@ from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
 
 
 class KvsConfig:
-    """Kinesis Video Streaming configuration"""
-
     def __init__(self, vs_data):
         if vs_data is not None:
             self.enabled = True
@@ -185,19 +183,6 @@ class DeviceRestApi:
             server_ca_cert_path: str,
             thing_name: str
     ) -> Optional[tuple]:
-        """
-        Fetch AWS credentials from an IoT credential endpoint for Kinesis Video Streaming.
-
-        Args:
-            credential_endpoint: HTTPS URL ending with '/credentials' for the AWS role alias
-            device_cert_path: Path to the device certificate file
-            device_pkey_path: Path to the device private key file
-            server_ca_cert_path: Path to the server CA certificate file
-            thing_name: The IoT thing name (MQTT client ID)
-
-        Returns:
-            Tuple of (accessKeyId, secretAccessKey, sessionToken) on success, None on failure
-        """
         import ssl
 
         if not credential_endpoint:
