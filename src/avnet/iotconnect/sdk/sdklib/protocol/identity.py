@@ -70,7 +70,7 @@ class ProtocolIdentityPJson:
     id: Optional[str] = None
     un: Optional[str] = None
     topics: ProtocolTopicsJson = field(default_factory=ProtocolTopicsJson)
-    vs: Optional[ProtocolVideoStreamingJson] = None
+    vs: Optional[ProtocolVideoStreamingJson] = None  # NEW: Video streaming config
 
 
 @dataclass

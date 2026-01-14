@@ -17,6 +17,8 @@ from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
 
 
 class KvsConfig:
+    """Kinesis Video Streaming configuration"""
+
     def __init__(self, vs_data):
         if vs_data is not None:
             self.enabled = True
@@ -40,6 +42,7 @@ class DeviceIdentityData:
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
 
+        # NEW: KVS configuration
         self.kvs = KvsConfig(mqtt.vs)
 
 
@@ -173,3 +176,77 @@ class DeviceRestApi:
 
         except URLError as url_error:
             raise DeviceConfigError(str(url_error))
+
+    def get_aws_credentials(
+            self,
+            credential_endpoint: str,
+            device_cert_path: str,
+            device_pkey_path: str,
+            server_ca_cert_path: str,
+            thing_name: str
+    ) -> Optional[tuple]:
+        """
+        Fetch AWS credentials from an IoT credential endpoint for Kinesis Video Streaming.
+
+        Args:
+            credential_endpoint: HTTPS URL ending with '/credentials' for the AWS role alias
+            device_cert_path: Path to the device certificate file
+            device_pkey_path: Path to the device private key file
+            server_ca_cert_path: Path to the server CA certificate file
+            thing_name: The IoT thing name (MQTT client ID)
+
+        Returns:
+            Tuple of (accessKeyId, secretAccessKey, sessionToken) on success, None on failure
+        """
+        import ssl
+
+        if not credential_endpoint:
+            print("AWS credential endpoint is required")
+            return None
+
+        url = credential_endpoint.strip()
+        try:
+            parsed = urllib.parse.urlparse(url)
+            if parsed.scheme != "https" or not url.endswith("/credentials"):
+                print(f"Bad role-alias URL: {url}. URL must use HTTPS and end with '/credentials'")
+                return None
+            if not parsed.netloc:
+                print(f"Invalid URL format: {url}. Missing domain name")
+                return None
+        except Exception as e:
+            print(f"Failed to parse URL '{url}': {e}")
+            return None
+
+        if self.verbose:
+            print(f"AWS credentials endpoint: {url}")
+            print(f"Using Thing name: {thing_name}")
+
+        try:
+            ssl_context = ssl.create_default_context(cafile=server_ca_cert_path)
+            ssl_context.load_cert_chain(certfile=device_cert_path, keyfile=device_pkey_path)
+
+            request = urllib.request.Request(
+                url,
+                headers={"x-amzn-iot-thingname": thing_name}
+            )
+            response = urllib.request.urlopen(request, context=ssl_context)
+            res_load = json.loads(response.read().decode('utf-8'))
+
+            if self.verbose:
+                print(res_load)
+
+            return (
+                res_load["credentials"]["accessKeyId"],
+                res_load["credentials"]["secretAccessKey"],
+                res_load["credentials"]["sessionToken"]
+            )
+
+        except HTTPError as e:
+            print(f"HTTP error obtaining credentials: {e.code} {e.reason}")
+            return None
+        except URLError as e:
+            print(f"Error obtaining credentials: {e}")
+            return None
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error parsing credentials response: {e}")
+            return None
