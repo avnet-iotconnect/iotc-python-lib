@@ -11,8 +11,7 @@ from urllib.error import HTTPError, URLError
 from avnet.iotconnect.sdk.sdklib.config import DeviceProperties
 from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError
 from avnet.iotconnect.sdk.sdklib.protocol.discovery import IotcDiscoveryResponseJson
-from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, \
-    ProtocolIdentityResponseJson
+from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, ProtocolIdentityResponseJson, ProtocolVideoStreamingJson
 from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
 
 
@@ -29,7 +28,7 @@ class KvsConfig:
 
 
 class DeviceIdentityData:
-    def __init__(self, mqtt: ProtocolIdentityPJson, metadata: ProtocolMetaJson):
+    def __init__(self, mqtt: ProtocolIdentityPJson, metadata: ProtocolMetaJson, vs: Optional[ProtocolVideoStreamingJson] = None):
         self.host = mqtt.h
         self.client_id = mqtt.id
         self.username = mqtt.un
@@ -40,8 +39,7 @@ class DeviceIdentityData:
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
 
-        # NEW: KVS configuration
-        self.kvs = KvsConfig(mqtt.vs)
+        self.kvs = KvsConfig(vs)
 
 
 class DraDiscoveryUrl:
@@ -147,7 +145,7 @@ class DraDeviceInfoParser:
             raise DeviceConfigError("Identity JSON Parsing Error: %s" % str(json_error))
         cls._parsing_common("Identity", ird)
 
-        return DeviceIdentityData(ird.d.p, ird.d.meta)
+        return DeviceIdentityData(ird.d.p, ird.d.meta, ird.d.vs)
 
 
 class DeviceRestApi:
@@ -163,8 +161,7 @@ class DeviceRestApi:
             discovery_base_url = DraDeviceInfoParser.parse_discovery_response(resp.read())
 
             if self.verbose:
-                print(
-                    "Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
+                print("Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             resp = urllib.request.urlopen(DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             identity_response = DraDeviceInfoParser.parse_identity_response(resp.read())
             return identity_response
@@ -176,12 +173,12 @@ class DeviceRestApi:
             raise DeviceConfigError(str(url_error))
 
     def get_aws_credentials(
-            self,
-            credential_endpoint: str,
-            device_cert_path: str,
-            device_pkey_path: str,
-            server_ca_cert_path: str,
-            thing_name: str
+        self,
+        credential_endpoint: str,
+        device_cert_path: str,
+        device_pkey_path: str,
+        server_ca_cert_path: str,
+        thing_name: str
     ) -> Optional[tuple]:
         import ssl
 
