@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
-
+import json
 # The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
 # For more information about ChatGPT, visit https://openai.com/
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
@@ -57,10 +57,33 @@ class ProtocolVideoStreamingJson:
     url: Optional[str] = None  # AWS IoT credentials endpoint
     as_: Optional[bool] = field(default=None, metadata={'alias': 'as'})  # Auto-start flag
 
+    # "as" is a keyword in Python, so we use "as_" in the dataclass and map it to "as" in JSON
     def __post_init__(self):
         if hasattr(self, 'as'):
             self.as_ = getattr(self, 'as')
 
+
+@dataclass
+class ProtocolBucketsJson:
+    bn: Optional[str] = None    # Bucket name
+    ca: Optional[bool] = None   # ca="customer account"
+    rarn: Optional[str] = None  # role arn
+
+
+@dataclass
+class ProtocolFsJson:
+    '''
+    Note about credentials:
+    1 .Obtain temprrary STS credentials (accessKeyId, secretAccessKey, sessionToken) from the /credentials GET URL.
+    Ensure that the GET request also includes "x-amzn-iot-thingname" header with the device's client ID (thing name).
+    This request will retrun
+    2. If bucket's ca==true, it means that we have to invoke another ASSUME ROLE request to the corss-account STS endpoint
+    to obtain A NEW SET OF STS crednetials that will be used in the request BELOW.
+    We will be using the role ARN provided in the "rarn" field to assume the role in the customer account.
+    3. Use the obtained STS credentials for S3 access to the bucket.
+    '''
+    url: Optional[str] = None  # AWS IoT credentials endpoint
+    buckets: List[ProtocolBucketsJson] = field(default=None)
 
 @dataclass
 class ProtocolIdentityPJson:
@@ -81,10 +104,18 @@ class ProtocolIdentityDJson:
     p: ProtocolIdentityPJson = field(default_factory=ProtocolIdentityPJson)
     dt: Optional[str] = None
     vs: Optional[ProtocolVideoStreamingJson] = None
+    fs: Optional[ProtocolFsJson] = None
 
 
 @dataclass
 class ProtocolIdentityResponseJson:
+    d: ProtocolIdentityDJson = field(default_factory=ProtocolIdentityDJson)
+    status: int = field(default=0)
+    message: str = field(default="")
+
+
+@dataclass
+class HttpCredentialsResponseJson:
     d: ProtocolIdentityDJson = field(default_factory=ProtocolIdentityDJson)
     status: int = field(default=0)
     message: str = field(default="")

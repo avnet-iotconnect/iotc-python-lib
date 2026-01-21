@@ -128,6 +128,11 @@ def filter_init(cls):
     return cls
 
 
+def filter_dict_to_dataclass_fields(item: dict, dc: Type[T]) -> dict:
+    """Filter a dictionary to include only fields defined in the dataclass."""
+    valid_fields = {f.name for f in fields(dc)}
+    return {k: v for k, v in item.items() if k in valid_fields}
+
 class Timing:
     def __init__(self):
         self.t = datetime.now()
