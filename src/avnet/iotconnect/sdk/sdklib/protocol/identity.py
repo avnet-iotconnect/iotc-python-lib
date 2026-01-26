@@ -93,6 +93,8 @@ class ProtocolIdentityPJson:
     id: Optional[str] = None
     un: Optional[str] = None
     topics: ProtocolTopicsJson = field(default_factory=ProtocolTopicsJson)
+    vs: Optional[ProtocolVideoStreamingJson] = None
+    fs: Optional[ProtocolFsJson] = None
 
 
 @dataclass
@@ -103,8 +105,6 @@ class ProtocolIdentityDJson:
     has: ProtocolHasJson = field(default_factory=ProtocolHasJson)
     p: ProtocolIdentityPJson = field(default_factory=ProtocolIdentityPJson)
     dt: Optional[str] = None
-    vs: Optional[ProtocolVideoStreamingJson] = None
-    fs: Optional[ProtocolFsJson] = None
 
 
 @dataclass

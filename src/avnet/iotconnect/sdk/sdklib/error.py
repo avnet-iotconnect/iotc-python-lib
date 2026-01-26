@@ -16,3 +16,8 @@ class C2DDecodeError(RuntimeError):
     def __init__(self, message: str):
         self.msg = message
         super().__init__(message)
+
+class NotSupportedError(RuntimeError):
+    def __init__(self, message: str):
+        self.msg = message
+        super().__init__(message)

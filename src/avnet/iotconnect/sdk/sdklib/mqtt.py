@@ -85,7 +85,7 @@ class C2dMessage:
     STOP_STREAM = 113
     UNKNOWN = 9999
 
-    TYPES: dict[int, str, str] = {
+    TYPES: dict[int, str] = {
         COMMAND: "Command",
         OTA: "OTA Update",
         REFRESH_ATTRIBUTE: "Refresh Attribute",
