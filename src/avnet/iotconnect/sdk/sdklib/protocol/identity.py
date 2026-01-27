@@ -47,6 +47,7 @@ class ProtocolTopicsJson:
     ack: Optional[str] = None
     dl: Optional[str] = None
     di: Optional[str] = None
+    fu: Optional[str] = None
     c2d: Optional[str] = None
     set: ProtocolSetJson = field(default_factory=ProtocolSetJson)
 
