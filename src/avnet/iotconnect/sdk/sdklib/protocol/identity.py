@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
-import json
 # The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
 # For more information about ChatGPT, visit https://openai.com/
 
@@ -66,22 +65,22 @@ class ProtocolVideoStreamingJson:
 @dataclass
 class ProtocolBucketsJson:
     bn: Optional[str] = None    # Bucket name
-    ca: Optional[bool] = None   # ca="customer account"
+    ca: Optional[bool] = None   # ca="customer account" (cross-account?)
     rarn: Optional[str] = None  # role arn
 
 
 @dataclass
 class ProtocolFsJson:
-    '''
+    """
     Note about credentials:
-    1 .Obtain temprrary STS credentials (accessKeyId, secretAccessKey, sessionToken) from the /credentials GET URL.
+    1 .Obtain temporary STS credentials (accessKeyId, secretAccessKey, sessionToken) from the /credentials GET URL.
     Ensure that the GET request also includes "x-amzn-iot-thingname" header with the device's client ID (thing name).
-    This request will retrun
-    2. If bucket's ca==true, it means that we have to invoke another ASSUME ROLE request to the corss-account STS endpoint
-    to obtain A NEW SET OF STS crednetials that will be used in the request BELOW.
+    This request will return
+    2. If bucket's ca==true, it means that we have to invoke another ASSUME ROLE request to the cross-account STS endpoint
+    to obtain A NEW SET OF STS credentials that will be used in the request BELOW.
     We will be using the role ARN provided in the "rarn" field to assume the role in the customer account.
     3. Use the obtained STS credentials for S3 access to the bucket.
-    '''
+    """
     url: Optional[str] = None  # AWS IoT credentials endpoint
     buckets: List[ProtocolBucketsJson] = field(default=None)
 
@@ -109,13 +108,6 @@ class ProtocolIdentityDJson:
 
 @dataclass
 class ProtocolIdentityResponseJson:
-    d: ProtocolIdentityDJson = field(default_factory=ProtocolIdentityDJson)
-    status: int = field(default=0)
-    message: str = field(default="")
-
-
-@dataclass
-class HttpCredentialsResponseJson:
     d: ProtocolIdentityDJson = field(default_factory=ProtocolIdentityDJson)
     status: int = field(default=0)
     message: str = field(default="")

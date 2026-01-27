@@ -66,6 +66,7 @@ class C2dAck:
     def is_valid_ota_status(cls, status: int) -> bool:
         return status in (C2dAck.OTA_FAILED, C2dAck.OTA_DOWNLOADING, C2dAck.OTA_DOWNLOAD_DONE, C2dAck.OTA_DOWNLOAD_FAILED)
 
+
 class C2dMessage:
     COMMAND = 0
     OTA = 1
@@ -313,7 +314,6 @@ def decode_c2d_message(payload: str) -> C2DDecodeResult:
             if len(ota.urls) == 0:
                 raise C2DDecodeError("C2D OTA message has no URLs: %s" % payload)
             ret.ota = ota
-        # Check result.generic_message.type to trigger appropriate callbacks
 
         return ret
     except JSONDecodeError as ex:

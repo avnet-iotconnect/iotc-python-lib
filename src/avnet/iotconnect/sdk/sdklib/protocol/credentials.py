@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
-import json
-
-
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+
 
 @dataclass
 class CredentialsJson:

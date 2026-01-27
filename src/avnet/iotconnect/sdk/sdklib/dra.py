@@ -20,23 +20,19 @@ from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
 
 
 class DeviceIdentityData:
-    def __init__(
-            self,
-            mqtt: ProtocolIdentityPJson,
-            metadata: ProtocolMetaJson
-    ):
-        self.host = mqtt.h
-        self.client_id = mqtt.id
-        self.username = mqtt.un
-        self.topics = mqtt.topics
+    def __init__(self, protocol_data: ProtocolIdentityPJson, metadata: ProtocolMetaJson):
+        self.host = protocol_data.h
+        self.client_id = protocol_data.id
+        self.username = protocol_data.un
+        self.topics = protocol_data.topics
 
         self.pf = metadata.pf
         self.is_edge_device = metadata.edge
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
 
-        self.vs = mqtt.vs
-        self.filesystem = mqtt.fs
+        self.vs = protocol_data.vs
+        self.filesystem = protocol_data.fs
 
 @dataclass
 class AwsCredentialsResponse:
@@ -284,6 +280,8 @@ class DeviceRestApi:
         if not client_id and self.identity_response:
             client_id = self.identity_response.client_id
 
+        # NOTE: If tls_credentials are supplied, the client should have already validated them by establishing the MQTT connection.
+        # So no need really for too many extra checks. this may be an enhancement opportunity for the future.
         if self.tls_credentials:
             if not device_cert_path:
                 device_cert_path = self.tls_credentials.device_cert_path

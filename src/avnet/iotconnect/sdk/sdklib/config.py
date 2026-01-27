@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+
 from typing import Optional
 from .error import DeviceConfigError
 
@@ -11,7 +12,7 @@ class DeviceProperties:
     like device Unique ID (DUID) and account properties lke CPID, Environment etc.
     """
 
-    def __init__(self, duid: str, cpid: str, env: str, platform: str, ):
+    def __init__(self, duid: str, cpid: str, env: str, platform: str):
         """
         :param platform: The IoTconnect IoT platform - Either "aws" for AWS IoTCore or "az" for Azure IoTHub
         :param env: Your account environment. You can locate this in you IoTConnect web UI at Settings -> Key Value
