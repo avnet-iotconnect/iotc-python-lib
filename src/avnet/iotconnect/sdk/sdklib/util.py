@@ -46,6 +46,10 @@ def deserialize_dataclass(cls: Type[T], data: Union[dict, list]) -> T:
                 return deserialize_dataclass(inner_type, data)
 
     if isinstance(data, dict) and is_dataclass(cls):
+        if isinstance(data, dict) and is_dataclass(cls):
+            # Allow class to pre-process data (e.g., rename reserved keywords)
+            if hasattr(cls, '_preprocess_data'):
+                data = cls._preprocess_data(data)
         field_types = get_type_hints(cls)
         return cls(
             **{

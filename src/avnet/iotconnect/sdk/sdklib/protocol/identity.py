@@ -55,13 +55,14 @@ class ProtocolTopicsJson:
 @dataclass
 class ProtocolVideoStreamingJson:
     url: Optional[str] = None  # AWS IoT credentials endpoint
-    as_: Optional[bool] = field(default=None, metadata={'alias': 'as'})  # Auto-start flag
+    as_: Optional[bool] = field(default=None)
 
-    # "as" is a keyword in Python, so we use "as_" in the dataclass and map it to "as" in JSON
-    def __post_init__(self):
-        if hasattr(self, 'as'):
-            self.as_ = getattr(self, 'as')
-
+    @staticmethod
+    def _preprocess_data(data: dict) -> dict:
+        # We have to hack around the 'as' keyword since it's reserved in Python.
+        if 'as' in data:
+            data = {**data, 'as_': data.pop('as')}
+        return data
 
 @dataclass
 class ProtocolBucketsJson:
