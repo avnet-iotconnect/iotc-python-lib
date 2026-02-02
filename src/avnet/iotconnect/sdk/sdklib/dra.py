@@ -179,7 +179,7 @@ class DraCredentialsParser:
             # try to give a meaningful error if possible
             if crj.message:
                 if crj.message == 'Access Denied':
-                    raise ClientError("Credentials request denied. Message: %s. Ensure that you enabled the required feature in your template." % crj.message)
+                    raise ClientError("Credentials request denied. Message: %s. Ensure that you enabled the required feature in your template. Re-create the device if this error persists. Message was:" % crj.message)
                 else:
                     raise ClientError("Credentials request failed. Message: %s" % crj.message)
             else:
