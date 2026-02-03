@@ -2,11 +2,6 @@
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
-# The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
-# For more information about ChatGPT, visit https://openai.com/
-
-# This file contains outbound message types (while some messages are related to inbound C2D Messages)
-
 from dataclasses import dataclass, field
 from typing import Optional, Any
 

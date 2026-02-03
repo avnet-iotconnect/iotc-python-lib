@@ -2,9 +2,6 @@
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
-# The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
-# For more information about ChatGPT, visit https://openai.com/
-
 from dataclasses import fields, is_dataclass
 from datetime import datetime, timedelta
 from typing import get_type_hints, Type, Union, TypeVar
