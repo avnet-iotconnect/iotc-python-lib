@@ -51,7 +51,8 @@ class AwsCredentialsResponse:
         def expiration(self) -> Optional[datetime.datetime]:
             if self.expiration_str is not None:
                 try:
-                    return datetime.datetime.fromisoformat(self.expiration_str)
+                    # python 3.12 will be happy with the original format but 3.9 needs the Z replaced with +00:00
+                    return datetime.datetime.fromisoformat(self.expiration_str.replace('Z', '+00:00'))
                 except ValueError:
                     raise ClientError("Unable to parse expiration string: %s" % self.expiration_str)
             else:
