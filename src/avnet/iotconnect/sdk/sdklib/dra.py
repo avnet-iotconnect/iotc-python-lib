@@ -1,34 +1,64 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
+import datetime
 import json
+import ssl
 import urllib.parse
 import urllib.request
+from dataclasses import field, dataclass
 from typing import Final, Union, Optional
 from urllib.error import HTTPError, URLError
 
-from avnet.iotconnect.sdk.sdklib.config import DeviceProperties
-from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError
+from avnet.iotconnect.sdk.sdklib.config import DeviceProperties, DeviceTlsCredentials
+from avnet.iotconnect.sdk.sdklib.error import DeviceConfigError, ClientError
+from avnet.iotconnect.sdk.sdklib.protocol.credentials import CredentialsResponseJson
 from avnet.iotconnect.sdk.sdklib.protocol.discovery import IotcDiscoveryResponseJson
 from avnet.iotconnect.sdk.sdklib.protocol.identity import ProtocolIdentityPJson, ProtocolMetaJson, ProtocolIdentityResponseJson
 from avnet.iotconnect.sdk.sdklib.util import deserialize_dataclass
 
 
 class DeviceIdentityData:
-    def __init__(self, mqtt: ProtocolIdentityPJson, metadata: ProtocolMetaJson):
-        self.host = mqtt.h
-        self.client_id = mqtt.id
-        self.username = mqtt.un
-        self.topics = mqtt.topics
+    def __init__(self, protocol_data: ProtocolIdentityPJson, metadata: ProtocolMetaJson):
+        self.host = protocol_data.h
+        self.client_id = protocol_data.id
+        self.username = protocol_data.un
+        self.topics = protocol_data.topics
 
         self.pf = metadata.pf
         self.is_edge_device = metadata.edge
         self.is_gateway_device = metadata.gtw
         self.protocol_version = str(metadata.v)
 
+        self.vs = protocol_data.vs
+        self.filesystem = protocol_data.fs
+
+@dataclass
+class AwsCredentialsResponse:
+        """
+        NOTE: We could just return CredentialsResponseJson object, but this class makes it
+        easier to adapt if the HTTP response structure changes in the future.
+        We also process the string into datetime object for easier use.
+        """
+        access_key_id: Optional[str]= field(default=None)
+        secret_access_key: Optional[str] = field(default=None)
+
+        session_token: Optional[str]= field(default=None)
+        expiration_str: Optional[str] = field(default=None)
+
+        @property
+        def expiration(self) -> Optional[datetime.datetime]:
+            if self.expiration_str is not None:
+                try:
+                    # python 3.12 will be happy with the original format but 3.9 needs the Z replaced with +00:00
+                    return datetime.datetime.fromisoformat(self.expiration_str.replace('Z', '+00:00'))
+                except ValueError:
+                    raise ClientError("Unable to parse expiration string: %s" % self.expiration_str)
+            else:
+                return None
+
 class DraDiscoveryUrl:
-    method: str = "GET"  # To clarify that get should be used to parse the response
     API_URL_FORMAT: Final[str] = "https://discovery.iotconnect.io/api/v2.1/dsdk/cpId/%s/env/%s?pf=%s"
 
     def __init__(self, config: DeviceProperties):
@@ -48,8 +78,6 @@ class DraIdentityUrl:
     def __init__(self, base_url):
         self.base_url = base_url
 
-    method: str = "GET"  # To clarify that get should be used to parse the response
-
     def get_uid_api_url(self, config: DeviceProperties) -> str:
         return DraIdentityUrl.UID_API_URL_FORMAT % (
             self.base_url,
@@ -68,7 +96,7 @@ class DraDeviceInfoParser:
         "Device is not active.",
         "Un-Associated. Device has not any template associated with it.",
         "Device is not acquired. Device is created but it is in release state.",
-        "Device is disabled. It’s disabled from broker by Platform Admin",
+        "Device is disabled. It's disabled from broker by Platform Admin",
         "Company not found as SID is not valid",
         "Subscription is expired.",
         "Connection Not Allowed.",
@@ -85,7 +113,7 @@ class DraDeviceInfoParser:
         if rd.d is not None:
             if rd.d.ec != 0:
                 has_error = True
-                if rd.d.ec <= len(cls.EC_RESPONSE_MAPPING):
+                if rd.d.ec < len(cls.EC_RESPONSE_MAPPING):
                     ec_message = 'ec=%d (%s)' % (rd.d.ec, cls.EC_RESPONSE_MAPPING[rd.d.ec])
                 else:
                     ec_message = 'ec==%d' % rd.d.ec
@@ -100,7 +128,7 @@ class DraDeviceInfoParser:
                 '%s failed. Error: "%s" status=%d message=%s' % (
                     what,
                     ec_message,
-                    rd.status,
+                    rd.status if rd.status is not None else -1,
                     rd.message or "(message not available)"
                 )
             )
@@ -132,10 +160,50 @@ class DraDeviceInfoParser:
 
         return DeviceIdentityData(ird.d.p, ird.d.meta)
 
+class DraCredentialsParser:
+
+    @classmethod
+    def parse_credentials_response(cls, response_str: str) -> CredentialsResponseJson:
+        """
+        NOTE: raises DeviceConfigError or ClientError on error
+        """
+        crj: CredentialsResponseJson
+        try:
+            crj = deserialize_dataclass(CredentialsResponseJson, json.loads(response_str))
+        except json.JSONDecodeError as json_error:
+            raise ClientError("Credentials JSON Parsing Error: %s" % str(json_error))
+
+        has_error = False
+        if not crj.credentials or not crj.credentials.accessKeyId or not crj.credentials.secretAccessKey or not crj.credentials.sessionToken:
+            has_error = True
+        if has_error:
+            # try to give a meaningful error if possible
+            if crj.message:
+                if crj.message == 'Access Denied':
+                    raise ClientError("Credentials request denied. Message: %s. Ensure that you enabled the required feature in your template. Re-create the device if this error persists. Message was:" % crj.message)
+                else:
+                    raise ClientError("Credentials request failed. Message: %s" % crj.message)
+            else:
+                raise ClientError("Credentials response is missing required fields")
+
+        return crj
+
 class DeviceRestApi:
-    def __init__(self, config: DeviceProperties, verbose: Optional[bool] = False):
+
+    def __init__(self, config: DeviceProperties, tls_credentials: Optional[DeviceTlsCredentials] = None, verbose: Optional[bool] = False):
+        """
+        Device REST API class to perform DRA operations like getting identity data and AWS credentials.
+        Greengrass SDK NOTE: The component will not usually NOT have access to cert/key files.
+        :param config: DeviceProperties needed to perform DRA operations
+        :param tls_credentials: Optional TLS credentials to use for some secured HTTPS requests
+        :param verbose: When true, this class will print verbose output to stdout
+        """
         self.config = config
+        self.tls_credentials = tls_credentials
         self.verbose = verbose
+
+        # Cache this for use in get_aws_credentials and similar
+        self.identity_response: Optional[DeviceIdentityData] = None
 
     def get_identity_data(self) -> DeviceIdentityData:
         try:
@@ -147,11 +215,129 @@ class DeviceRestApi:
             if self.verbose:
                 print("Requesting Identity Data %s..." % DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
             resp = urllib.request.urlopen(DraIdentityUrl(discovery_base_url).get_uid_api_url(self.config))
-            identity_response = DraDeviceInfoParser.parse_identity_response(resp.read())
-            return identity_response
+            self.identity_response = DraDeviceInfoParser.parse_identity_response(resp.read())
+            return self.identity_response
 
         except HTTPError as http_error:
-            raise DeviceConfigError(http_error)
+            raise DeviceConfigError(str(http_error))
 
         except URLError as url_error:
             raise DeviceConfigError(str(url_error))
+
+    def get_aws_credentials_kvs(
+        self,
+        client_id: Optional[str] = None, # AKA thing_name
+        device_cert_path: Optional[str] = None,
+        device_pkey_path: Optional[str] = None,
+        server_ca_cert_path: Optional[str] = None
+        ) -> AwsCredentialsResponse:
+            if not self.identity_response:
+                raise DeviceConfigError("Identity response is not available. Call get_identity_data() first.")
+            if not self.identity_response.vs:
+                raise DeviceConfigError("KVS credentials are not available in the identity response. Ensure that you enabled \"Video Streaming\" in the device template")
+            return self.get_aws_credentials(
+                credentials_endpoint=self.identity_response.vs.url,
+                client_id=client_id,
+                device_cert_path=device_cert_path,
+                device_pkey_path=device_pkey_path,
+                server_ca_cert_path=server_ca_cert_path
+            )
+
+    def get_aws_credentials_s3(
+        self,
+        client_id: Optional[str] = None, # AKA thing_name
+        device_cert_path: Optional[str] = None,
+        device_pkey_path: Optional[str] = None,
+        server_ca_cert_path: Optional[str] = None
+        ) -> AwsCredentialsResponse:
+            if not self.identity_response:
+                raise DeviceConfigError("Identity response is not available. Call get_identity_data() first.")
+            if not self.identity_response.filesystem:
+                raise DeviceConfigError("Filesystem (S3) credentials are not available in the identity response. Ensure that you enabled \"Filesystem Support\" in the device template")
+            return self.get_aws_credentials(
+                credentials_endpoint=self.identity_response.filesystem.url,
+                client_id=client_id,
+                device_cert_path=device_cert_path,
+                device_pkey_path=device_pkey_path,
+                server_ca_cert_path=server_ca_cert_path
+            )
+
+
+    def get_aws_credentials(
+        self,
+        credentials_endpoint: str,
+        client_id: Optional[str] = None, # AKA thing_name
+        device_cert_path: Optional[str] = None,
+        device_pkey_path: Optional[str] = None,
+        server_ca_cert_path: Optional[str] = None,
+    ) -> AwsCredentialsResponse:
+        """
+        Note: Call one of the appropriate get_aws_credentials_* instead, unless you need to do something custom.
+        """
+
+        if not credentials_endpoint:
+            raise ValueError("Credential endpoint URL is required")
+
+        if not client_id and self.identity_response:
+            client_id = self.identity_response.client_id
+
+        # NOTE: If tls_credentials are supplied, the client should have already validated them by establishing the MQTT connection.
+        # So no need really for too many extra checks. this may be an enhancement opportunity for the future.
+        if self.tls_credentials:
+            if not device_cert_path:
+                device_cert_path = self.tls_credentials.device_cert_path
+            if not device_pkey_path:
+                device_pkey_path = self.tls_credentials.device_pkey_path
+            if not server_ca_cert_path:
+                server_ca_cert_path = self.tls_credentials.server_ca_cert_path
+
+        if not client_id:
+            raise DeviceConfigError("Client ID (Thing Name) is required for AWS credentials request")
+
+        if not device_cert_path or not device_pkey_path:
+            raise DeviceConfigError("Device certificate and private key paths are required for AWS credentials request")
+
+        if self.verbose:
+            print(f"Requesting credentials from {credentials_endpoint}")
+
+        context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        context.check_hostname = True
+        context.verify_mode = ssl.CERT_REQUIRED
+
+        what = "device cert/private key credentials"
+        try:
+            context.load_cert_chain(certfile=device_cert_path, keyfile=device_pkey_path)
+            if server_ca_cert_path:
+                what="server CA certificate"
+                context.load_verify_locations(cafile=server_ca_cert_path)
+        except ssl.SSLError as e:
+            raise DeviceConfigError(f"Error processing {what}. Are the key and the cert matching? SSL details: {e} (errno: {e.errno}, reason: {e.reason}, strerror: {e.strerror}")
+        except HTTPError as e:
+            raise DeviceConfigError(f"HTTPError while processing {what}: {e}")
+        except RuntimeError as e:
+            raise DeviceConfigError(f"Error processing {what}. Error details: {e}")
+
+        req = urllib.request.Request(credentials_endpoint)
+        req.add_header("x-amzn-iot-thingname", client_id)
+
+        resp_str: str
+        try:
+            with urllib.request.urlopen(req, context=context) as response:
+                resp_str = response.read()
+        except ssl.SSLError as e:
+            raise DeviceConfigError(f"SSLError while connecting to credentials endpoint. SSL details: {e} (errno: {e.errno}, reason: {e.reason}, strerror: {e.strerror}")
+        except HTTPError as e:
+            raise DeviceConfigError(f"HTTPError  while connecting to credentials endpoint: {e}")
+        except URLError as e:
+            raise DeviceConfigError(f"URLError while connecting to credentials endpoint: {e.reason}")
+        except RuntimeError as e:
+            raise DeviceConfigError(f"Error while connecting to credentials endpoint. Error details: {e}")
+
+        # will raise DeviceConfigError or ClientError on error
+        creds = DraCredentialsParser.parse_credentials_response(resp_str)
+        return AwsCredentialsResponse(
+            access_key_id=creds.credentials.accessKeyId,
+            secret_access_key=creds.credentials.secretAccessKey,
+            session_token=creds.credentials.sessionToken,
+            expiration_str=creds.credentials.expiration
+        )

@@ -1,10 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
-
-# The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
-# For more information about ChatGPT, visit https://openai.com/
-
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
 from dataclasses import fields, is_dataclass
 from datetime import datetime, timedelta
@@ -38,7 +34,19 @@ def deserialize_dataclass(cls: Type[T], data: Union[dict, list]) -> T:
             return [deserialize_dataclass(inner_type, item) for item in data]
         return data
 
+    # Handle Optional[T] where T is a dataclass
+    if hasattr(cls, '__origin__') and cls.__origin__ is Union:
+        inner_types = cls.__args__
+        if len(inner_types) == 2 and type(None) in inner_types:
+            inner_type = [t for t in inner_types if t is not type(None)][0]
+            if is_dataclass(inner_type) and isinstance(data, dict):
+                return deserialize_dataclass(inner_type, data)
+
     if isinstance(data, dict) and is_dataclass(cls):
+        if isinstance(data, dict) and is_dataclass(cls):
+            # Allow class to pre-process data (e.g., rename reserved keywords)
+            if hasattr(cls, '_preprocess_data'):
+                data = cls._preprocess_data(data)
         field_types = get_type_hints(cls)
         return cls(
             **{

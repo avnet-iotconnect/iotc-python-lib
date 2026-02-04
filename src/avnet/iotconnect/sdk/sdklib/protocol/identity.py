@@ -1,12 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
-
-# The JSON to object mapping was originally created with assistance from OpenAI's ChatGPT.
-# For more information about ChatGPT, visit https://openai.com/
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
@@ -48,9 +45,44 @@ class ProtocolTopicsJson:
     ack: Optional[str] = None
     dl: Optional[str] = None
     di: Optional[str] = None
+    fu: Optional[str] = None
     c2d: Optional[str] = None
     set: ProtocolSetJson = field(default_factory=ProtocolSetJson)
 
+
+@dataclass
+class ProtocolVideoStreamingJson:
+    url: Optional[str] = None  # AWS IoT credentials endpoint
+    as_: Optional[bool] = field(default=None)
+
+    @staticmethod
+    def _preprocess_data(data: dict) -> dict:
+        # We have to hack around the 'as' keyword since it's reserved in Python.
+        if 'as' in data:
+            data = {**data, 'as_': data.pop('as')}
+        return data
+
+@dataclass
+class ProtocolBucketsJson:
+    bn: Optional[str] = None    # Bucket name
+    ca: Optional[bool] = None   # ca="customer account" (cross-account?)
+    rarn: Optional[str] = None  # role arn
+
+
+@dataclass
+class ProtocolFsJson:
+    """
+    Note about credentials:
+    1 .Obtain temporary STS credentials (accessKeyId, secretAccessKey, sessionToken) from the /credentials GET URL.
+    Ensure that the GET request also includes "x-amzn-iot-thingname" header with the device's client ID (thing name).
+    This request will return
+    2. If bucket's ca==true, it means that we have to invoke another ASSUME ROLE request to the cross-account STS endpoint
+    to obtain A NEW SET OF STS credentials that will be used in the request BELOW.
+    We will be using the role ARN provided in the "rarn" field to assume the role in the customer account.
+    3. Use the obtained STS credentials for S3 access to the bucket.
+    """
+    url: Optional[str] = None  # AWS IoT credentials endpoint
+    buckets: List[ProtocolBucketsJson] = field(default=None)
 
 @dataclass
 class ProtocolIdentityPJson:
@@ -60,6 +92,8 @@ class ProtocolIdentityPJson:
     id: Optional[str] = None
     un: Optional[str] = None
     topics: ProtocolTopicsJson = field(default_factory=ProtocolTopicsJson)
+    vs: Optional[ProtocolVideoStreamingJson] = None
+    fs: Optional[ProtocolFsJson] = None
 
 
 @dataclass

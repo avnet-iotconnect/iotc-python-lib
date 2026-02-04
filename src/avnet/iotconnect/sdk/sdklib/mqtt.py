@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (C) 2024 Avnet
-# Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
+# Authors: Nikola Markovic <nikola.markovic@avnet.com> and Zackary Andraka <zackary.andraka@avnet.com> et al.
+
 import json
-import traceback
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from json import JSONDecodeError
@@ -82,9 +82,11 @@ class C2dMessage:
     STOP_OPERATION = 109
     START_HEARTBEAT = 100
     STOP_HEARTBEAT = 111
+    START_STREAM = 112
+    STOP_STREAM = 113
     UNKNOWN = 9999
 
-    TYPES: dict[int, str, str] = {
+    TYPES: dict[int, str] = {
         COMMAND: "Command",
         OTA: "OTA Update",
         REFRESH_ATTRIBUTE: "Refresh Attribute",
@@ -98,6 +100,8 @@ class C2dMessage:
         STOP_OPERATION: "Stop Operation",
         START_HEARTBEAT: "Start Heartbeat",
         STOP_HEARTBEAT: "Stop Heartbeat",
+        START_STREAM: "Start Video Stream",
+        STOP_STREAM: "Stop Video Stream",
         UNKNOWN: "<Unknown Command Received>"
     }
 
@@ -181,7 +185,6 @@ class C2DDecodeResult:
         # These will be set later once the generic message is processed:
         self.command: Optional[C2dCommand] = None
         self.ota: Optional[C2dOta] = None
-
 
 
 def encode_telemetry_records(records: list[TelemetryRecord], recordset_timestamp: datetime = None) -> str:
@@ -285,7 +288,7 @@ def decode_c2d_message(payload: str) -> C2DDecodeResult:
     Deserializes a C2D message that arrived to the "CMD" topic.
 
     The result will contain the "generic" message with properties that any message can have
-    and either the "command" or the "OTA" specific message that will be parsed and checked for errror.
+    and either the "command" or the "OTA" specific message that will be parsed and checked for error.
     """
     try:
         # use the simplest form of ProtocolC2dMessageJson when deserializing first and

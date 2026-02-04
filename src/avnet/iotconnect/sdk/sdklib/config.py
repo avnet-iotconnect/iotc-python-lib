@@ -2,8 +2,8 @@
 # Copyright (C) 2024 Avnet
 # Authors: Nikola Markovic <nikola.markovic@avnet.com> et al.
 
+from typing import Optional
 from .error import DeviceConfigError
-
 
 
 class DeviceProperties:
@@ -35,3 +35,23 @@ class DeviceProperties:
             raise DeviceConfigError('DeviceProperties: Environment value is missing')
         if self.platform not in ("aws", "az"):
             raise DeviceConfigError('DeviceProperties: Platform must be "aws" or "az"')
+
+class DeviceTlsCredentials:
+    """
+    This class is used to perform mutual TLS authentication with the /IOTCONNECT platform
+    for the "credentials" endpoints that are used for Kinesis Video Streaming or S3 storage access API.
+
+    Developer Note: The client will usually validate these files. There is little benefit in doing it on the lib side (for now).
+    """
+
+    def __init__(self, device_cert_path: str, device_pkey_path: str, server_ca_cert_path: Optional[str] = None):
+        """
+        :param device_cert_path: Path to the device certificate file
+        :param device_pkey_path: Path to the device private key file
+        :param server_ca_cert_path: Path to the server CA certificate file. If not specified system CA certificates will be used.
+        """
+
+        self.device_cert_path = device_cert_path
+        self.device_pkey_path = device_pkey_path
+        self.server_ca_cert_path = server_ca_cert_path
+
