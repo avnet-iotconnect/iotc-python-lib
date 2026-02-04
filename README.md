@@ -17,7 +17,7 @@ The library provides common code for interacting with /IOTCONNECT MQTT and HTTP 
 # Using The Library
 
 To use this library in your project, ensure that your pyton project depends on iotconnect-lib.
-Use a fixed major version dependency (E.g. "iotconnect-lib<2.0.0".) to 
+Use a fixed major version dependency (E.g. "iotconnect-lib<3.0.0".) to 
 avoid potential major version breaking your application calls.
 
 The best way to learn how to use this library is to examine the unit test usage examples
