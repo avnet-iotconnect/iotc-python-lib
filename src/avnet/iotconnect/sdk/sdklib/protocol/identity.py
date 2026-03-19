@@ -54,6 +54,7 @@ class ProtocolTopicsJson:
 class ProtocolVideoStreamingJson:
     url: Optional[str] = None  # AWS IoT credentials endpoint
     as_: Optional[bool] = field(default=None)
+    carn: Optional[str] = None  # WebRTC Signaling Channel ARN
 
     @staticmethod
     def _preprocess_data(data: dict) -> dict:
